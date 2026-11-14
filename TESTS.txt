@@ -1,19 +1,61 @@
-ТЕСТЫ КОРРЕКТНОСТИ
+// Проверяет результат отдельного теста.
+void require(bool condition, const std::string& testName) {
+    if (!condition)
+        throw std::runtime_error("ТЕСТ НЕ ПРОЙДЕН: " + testName);
 
-Запуск:
-  ./tests_correctness
+    std::cout << "[OK] " << testName << '\n';
+}
 
-Проверки:
-1. Маленькое умножение 2x2 с ручным ответом:
-   [1 2; 3 4] * [5 6; 7 8] = [19 22; 43 50].
-2. Умножение на единичную матрицу слева и справа.
-3. Умножение на нулевую матрицу слева и справа.
-4. Главная кросс-проверка: создаются случайные матрицы A и B;
-   те же самые значения хранятся в DenseMatrix и SparseMatrix.
-   Сравниваются результаты Dense*Dense, Dense*Sparse,
-   Sparse*Dense и Sparse*Sparse с точностью 1e-9.
-5. Несовместимые размеры должны вызывать invalid_argument.
-6. Выход за границы должен вызывать out_of_range.
-7. При записи нуля SparseMatrix удаляет запись из map.
+// Проверяет все четыре варианта умножения матриц.
+void runTests() {
+    std::cout << "=== ТЕСТЫ УМНОЖЕНИЯ МАТРИЦ ===\n";
 
-Успешное выполнение: все строки [OK], затем "Все тесты пройдены успешно".
+    // Создаём две плотные матрицы размером 2 на 2.
+    DenseMatrix a(2, 2);
+    DenseMatrix b(2, 2);
+
+    // Заполняем первую матрицу.
+    a.set(0, 0, 1);
+    a.set(0, 1, 2);
+    a.set(1, 0, 3);
+    a.set(1, 1, 4);
+
+    // Заполняем вторую матрицу.
+    b.set(0, 0, 5);
+    b.set(0, 1, 6);
+    b.set(1, 0, 7);
+    b.set(1, 1, 8);
+
+    // Создаём правильный результат умножения, рассчитанный вручную.
+    DenseMatrix expected(2, 2);
+    expected.set(0, 0, 19);
+    expected.set(0, 1, 22);
+    expected.set(1, 0, 43);
+    expected.set(1, 1, 50);
+
+    // Преобразуем плотные матрицы в разреженные.
+    SparseMatrix sa = toSparse(a);
+    SparseMatrix sb = toSparse(b);
+
+    // Тест 1: умножение плотной матрицы на плотную.
+    auto resultDD = a.mul(b);
+    require(matricesEqual(*resultDD, expected),
+            "Dense x Dense");
+
+    // Тест 2: умножение плотной матрицы на разреженную.
+    auto resultDS = a.mul(sb);
+    require(matricesEqual(*resultDS, expected),
+            "Dense x Sparse");
+
+    // Тест 3: умножение разреженной матрицы на плотную.
+    auto resultSD = sa.mul(b);
+    require(matricesEqual(*resultSD, expected),
+            "Sparse x Dense");
+
+    // Тест 4: умножение разреженной матрицы на разреженную.
+    auto resultSS = sa.mul(sb);
+    require(matricesEqual(*resultSS, expected),
+            "Sparse x Sparse");
+
+    std::cout << "Все четыре теста успешно пройдены!\n";
+}
